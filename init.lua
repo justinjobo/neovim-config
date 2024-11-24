@@ -1,5 +1,5 @@
---[[
-
+-- helpful to see whats under the cursor
+-- :TSHighlightCapturesUnderCursor
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -129,10 +129,25 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 		vim.highlight.on_yank()
 	end,
 })
+-- Keybinding to send selected code to ChatGPT and ask a question
+vim.api.nvim_set_keymap(
+	"v",
+	"<leader>ai",
+	":lua require('chatgpt').edit_with_instructions()<CR>",
+	{ noremap = true, silent = true }
+)
 
 -- Open a new floating terminal
 vim.api.nvim_set_keymap("n", "<leader>t", ":FloatermToggle<CR>", { noremap = true, silent = true })
-
+vim.api.nvim_set_hl(0, "@variable", { italic = false })
+vim.api.nvim_set_hl(0, "@function", { italic = false })
+vim.api.nvim_set_hl(0, "@function.call", { italic = false })
+vim.api.nvim_set_hl(0, "@function.builtin", { italic = false })
+vim.api.nvim_set_hl(0, "@_target", { italic = false })
+vim.api.nvim_set_hl(0, "Normal", { fg = "#ffffff" })
+vim.api.nvim_set_hl(0, "@variable", { fg = "#ffffff" })
+vim.api.nvim_set_hl(0, "@variable.member", { fg = "#ffffff" })
+vim.api.nvim_set_hl(0, "@property", { fg = "#ffffff" })
 -- Close the terminal with Ctrl+C
 vim.api.nvim_set_keymap("t", "<C-c>", "<C-\\><C-n>:FloatermToggle<CR>", { noremap = true, silent = true })
 
@@ -174,6 +189,7 @@ require("lazy").setup({
 	"voldikss/vim-floaterm",
 	"lalitmee/cobalt2.nvim",
 	"momota/cisco.vim",
+	"b0o/schemastore.nvim",
 	{
 		"RRethy/nvim-base16",
 		config = function()
@@ -402,8 +418,6 @@ require("lazy").setup({
 			end, { desc = "[S]earch [N]eovim files" })
 		end,
 	},
-
-	-- LSP Plugins
 	{
 		-- `lazydev` configures Lua LSP for your Neovim config, runtime and plugins
 		-- used for completion, annotations and signatures of Neovim apis
@@ -547,18 +561,6 @@ require("lazy").setup({
 						})
 					end
 
-					-- Keybinding to send selected code to ChatGPT and ask a question
-					vim.api.nvim_set_keymap(
-						"v",
-						"<leader>ai",
-						":lua require('chatgpt').edit_with_instructions()<CR>",
-						{ noremap = true, silent = true }
-					)
-
-					vim.api.nvim_set_hl(0, "@variable", { italic = false })
-					vim.api.nvim_set_hl(0, "@function.call", { italic = false })
-					vim.api.nvim_set_hl(0, "@function.builtin", { italic = false })
-
 					-- The following code creates a keymap to toggle inlay hints in your
 					-- code, if the language server you are using supports them
 					--
@@ -625,7 +627,58 @@ require("lazy").setup({
 						},
 					},
 				},
+				ansiblels = {
+					cmd = { "ansible-language-server", "--stdio" },
+					filetypes = { "yaml.ansible", "yaml" },
+					root_dir = require("lspconfig.util").root_pattern(".ansible-lint", ".git", vim.fn.getcwd()),
+					capabilities = capabilities,
+				},
+
+				-- Python
+				pyright = {
+					capabilities = capabilities,
+				},
+
+				-- Bash
+				bashls = {
+					capabilities = capabilities,
+				},
+
+				-- YAML
+				yamlls = {
+					settings = {
+						yaml = {
+							schemas = {
+								["http://json.schemastore.org/github-workflow"] = ".github/workflows/*.{yml,yaml}",
+								["http://json.schemastore.org/github-action"] = ".github/action.{yml,yaml}",
+								["http://json.schemastore.org/ansible-playbook"] = "playbook.{yml,yaml}",
+							},
+							validate = true,
+							completion = true,
+						},
+					},
+					capabilities = capabilities,
+				},
+
+				-- JSON
+				jsonls = {
+					settings = {
+						json = {
+							schemas = require("schemastore").json.schemas(),
+							validate = { enable = true },
+						},
+					},
+					capabilities = capabilities,
+				},
 			}
+
+			-- Set up all the servers
+			local lspconfig = require("lspconfig")
+			for server, config in pairs(servers) do
+				lspconfig[server].setup(config)
+			end
+			--	},
+			--	}
 
 			-- Ensure the servers and tools above are installed
 			--  To check the current status of installed tools and/or manually install
@@ -736,6 +789,8 @@ require("lazy").setup({
 			--  into multiple repos for maintenance purposes.
 			"hrsh7th/cmp-nvim-lsp",
 			"hrsh7th/cmp-path",
+			"hrsh7th/cmp-cmdline",
+			"hrsh7th/cmp-buffer",
 		},
 		config = function()
 			-- See `:help cmp`
@@ -812,6 +867,7 @@ require("lazy").setup({
 					{ name = "nvim_lsp" },
 					{ name = "luasnip" },
 					{ name = "path" },
+					{ name = "buffer" },
 				},
 			})
 		end,
@@ -844,6 +900,9 @@ require("lazy").setup({
 
 			-- Set autocmd for *.conf files
 			vim.cmd("autocmd BufRead,BufNewFile *.conf set filetype=conf")
+			vim.cmd([[
+          autocmd FileType bash nnoremap <buffer> <leader>ai :lua require('chatgpt').edit_with_instructions()<CR>
+      ]])
 
 			-- You can configure highlights by doing something like:
 			-- vim.cmd.hi("Comment gui=none")
@@ -975,21 +1034,7 @@ require("lazy").setup({
 	ui = {
 		-- If you are using a Nerd Font: set icons to an empty table which will use the
 		-- default lazy.nvim defined Nerd Font icons, otherwise define a unicode icons table
-		icons = vim.g.have_nerd_font and {} or {
-			cmd = "⌘",
-			config = "🛠",
-			event = "📅",
-			ft = "📂",
-			init = "⚙",
-			keys = "🗝",
-			plugin = "🔌",
-			runtime = "💻",
-			require = "🌙",
-			source = "📄",
-			start = "🚀",
-			task = "📌",
-			lazy = "💤 ",
-		},
+		icons = {},
 	},
 })
 
