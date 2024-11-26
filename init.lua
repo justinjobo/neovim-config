@@ -28,7 +28,7 @@ vim.opt.number = false
 -- vim.opt.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
-vim.opt.mouse = "a"
+vim.opt.mouse = ""
 
 -- Don't show the mode, since it's already in the status line
 vim.opt.showmode = false
@@ -115,6 +115,7 @@ vim.keymap.set("n", "<C-k>", "<C-w><C-k>", { desc = "Move focus to the upper win
 
 -- Enter ChatGPT chat mode:
 vim.keymap.set("n", "<A-c>", ":ChatGPT<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("i", "<C-Enter>", "<Plug>(chatgpt-send)", { noremap = true, silent = true })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -361,6 +362,17 @@ require("lazy").setup({
 			-- [[ Configure Telescope ]]
 			-- See `:help telescope` and `:help telescope.setup()`
 			require("telescope").setup({
+				defaults = {
+					vimgrep_arguments = {
+						"rg",
+						"--no-heading",
+						"--with-filename",
+						"--line-number",
+						"--column",
+						"--smart-case",
+						"--fixed-strings",
+					},
+				},
 				-- You can put your default mappings / updates / etc. in here
 				--  All the info you're looking for is in `:help telescope.setup()`
 				--
@@ -393,6 +405,10 @@ require("lazy").setup({
 			vim.keymap.set("n", "<leader>sr", builtin.resume, { desc = "[S]earch [R]esume" })
 			vim.keymap.set("n", "<leader>s.", builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
 			vim.keymap.set("n", "<leader><leader>", builtin.buffers, { desc = "[ ] Find existing buffers" })
+			-- Keybindings for Distant.nvim
+			vim.keymap.set("n", "<leader>df", "<cmd>DistantOpen<CR>", { desc = "Open Remote File" })
+			vim.keymap.set("n", "<leader>dd", "<cmd>DistantOpenDir<CR>", { desc = "Open Remote Directory" })
+			vim.keymap.set("n", "<leader>dc", "<cmd>DistantCommand<CR>", { desc = "Run Remote Command" })
 
 			-- Slightly advanced example of overriding default behavior and theme
 			vim.keymap.set("n", "<leader>/", function()
@@ -411,6 +427,27 @@ require("lazy").setup({
 					prompt_title = "Live Grep in Open Files",
 				})
 			end, { desc = "[S]earch [/] in Open Files" })
+
+			vim.keymap.set("n", "<leader>sw", function()
+				builtin.grep_string({
+					grep_open_files = true,
+					grep_unopened_files = true,
+					grep_args = { "-r", "-l", "-w", "-F", "--depth=6", "~/" },
+					prompt_title = "[S]earch current [W]ord",
+				})
+			end, { desc = "[S]earch current [W]ord" })
+
+			local home = vim.fn.expand("~")
+			vim.keymap.set("n", "<leader>sf", function()
+				builtin.grep_string({
+					prompt_title = "[S]earch in [F]iles",
+					cwd = home,
+					search = vim.fn.expand("<cword>"),
+					additional_args = function()
+						return { "--max-depth", "5", "--fixed-strings" }
+					end,
+				})
+			end, { desc = "[S]earch current word in [F]iles" })
 
 			-- Shortcut for searching your Neovim configuration files
 			vim.keymap.set("n", "<leader>sn", function()
