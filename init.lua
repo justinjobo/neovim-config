@@ -317,8 +317,20 @@ require("lazy").setup({
 				end,
 				desc = "Set Neogit repo to parent Git repo",
 			},
-		},
-		config = function()
+      {
+        "<leader>ga",
+        function()
+            local result = vim.fn.system("git add -A")
+            if vim.v.shell_error == 0 then
+                vim.notify("Staged all changes", vim.log.levels.INFO)
+            else
+                vim.notify("Failed to stage changes: " .. result, vim.log.levels.ERROR)
+            end
+        end,
+        desc = "Stage all changes",
+      },
+    },
+    config = function()
 			require("neogit").setup({
 				-- Your Neogit-specific configuration here
 			})
