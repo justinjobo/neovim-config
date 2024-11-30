@@ -1,5 +1,7 @@
 -- helpful to see whats under the cursor
 -- :TSHighlightCapturesUnderCursor
+-- Load files faster:
+vim.loader.enable()
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -16,16 +18,47 @@ vim.g.guifont = "JetBrainsMono Nerd Font:h14" -- Adjust the font size as needed
 -- Set to true if you have a Nerd Font installed and selected in the terminal
 vim.g.have_nerd_font = true
 
+local plugin_path = vim.fn.stdpath("data") .. "/lazy/rainbow-delimiters.nvim/lua"
+package.path = package.path .. ";" .. plugin_path .. "/?.lua"
+local rainbow_delimiters = require("rainbow-delimiters")
+
+---@type rainbow_delimiters.config
+vim.g.rainbow_delimiters = {
+	strategy = {
+		[""] = rainbow_delimiters.strategy["global"],
+		vim = rainbow_delimiters.strategy["local"],
+	},
+	query = {
+		[""] = "rainbow-delimiters",
+		lua = "rainbow-blocks",
+	},
+	priority = {
+		[""] = 110,
+		lua = 210,
+	},
+	highlight = {
+		"RainbowDelimiterRed",
+		"RainbowDelimiterYellow",
+		"RainbowDelimiterBlue",
+		"RainbowDelimiterOrange",
+		"RainbowDelimiterGreen",
+		"RainbowDelimiterViolet",
+		"RainbowDelimiterCyan",
+	},
+}
+
 -- [[ Setting options ]]
 -- See `:help vim.opt`
 -- NOTE: You can change these options as you wish!
 --  For more options, you can see `:help option-list`
 
 -- Make line numbers default
-vim.opt.number = false
+vim.opt.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.opt.relativenumber = true
+vim.opt.relativenumber = true
+
+vim.opt.cmdheight = 0 -- Use a popup for the cmdline
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = "a"
@@ -38,7 +71,7 @@ vim.opt.showmode = false
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
 vim.schedule(function()
-	vim.opt.clipboard = "unnamedplus"
+	vim.opt.clipboard = "unnamed,unnamedplus"
 end)
 
 -- Enable break indent
@@ -112,6 +145,21 @@ vim.keymap.set("n", "<C-h>", "<C-w><C-h>", { desc = "Move focus to the left wind
 vim.keymap.set("n", "<C-l>", "<C-w><C-l>", { desc = "Move focus to the right window" })
 vim.keymap.set("n", "<C-j>", "<C-w><C-j>", { desc = "Move focus to the lower window" })
 vim.keymap.set("n", "<C-k>", "<C-w><C-k>", { desc = "Move focus to the upper window" })
+
+-- ---- nvzone/menu keybinds ----
+-- Keyboard users
+vim.keymap.set("n", "<C-t>", function()
+	require("menu").open("default")
+end, {})
+-- mouse users + nvimtree users!
+vim.keymap.set("n", "<RightMouse>", function()
+	vim.cmd.exec('"normal! \\<RightMouse>"')
+	local options = vim.bo.ft == "NvimTree" and "nvimtree" or "default"
+	require("menu").open(options, { mouse = true })
+end, {})
+
+-- nvimtree toggle
+vim.keymap.set("n", "<leader>e", ":NvimTreeToggle<CR>", { noremap = true, silent = true })
 
 -- Enter ChatGPT chat mode:
 vim.keymap.set("n", "<A-c>", ":ChatGPT<CR>", { noremap = true, silent = true })
@@ -189,15 +237,157 @@ require("lazy").setup({
 	-- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
 	"tpope/vim-sleuth", -- Detect tabstop and shiftwidth automatically
 	"voldikss/vim-floaterm",
-	"lalitmee/cobalt2.nvim",
 	"momota/cisco.vim",
 	"b0o/schemastore.nvim",
+	"https://gitlab.com/hiphish/rainbow-delimiters.nvim",
+	"nvzone/volt",
+	"nvzone/menu",
 	{
 		"RRethy/nvim-base16",
 		config = function()
+			-- Set the colorscheme
 			vim.cmd("colorscheme base16-synth-midnight-dark")
+
+			-- Customize Comment color
 			vim.api.nvim_set_hl(0, "Comment", { fg = "#a3a5a6", italic = false })
+
+			-- Delay the CursorLineNr customization to ensure it overrides
+			vim.defer_fn(function()
+				vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFA500", bg = "NONE", bold = true })
+			end, 0)
 		end,
+	},
+
+	{
+		"NeogitOrg/neogit",
+		dependencies = {
+			"nvim-lua/plenary.nvim", -- Required
+			"sindrets/diffview.nvim", -- Optional
+			-- Optional, pick one:
+			"nvim-telescope/telescope.nvim",
+			-- "ibhagwan/fzf-lua",
+			-- "echasnovski/mini.pick",
+		},
+		-- Lazy-load on these keymaps
+		keys = {
+			{
+				"<leader>gs",
+				function()
+					require("neogit").open()
+				end,
+				desc = "Open Neogit",
+			},
+			{
+				"<leader>gc",
+				":Neogit commit<CR>",
+				desc = "Neogit commit",
+			},
+			{
+				"<leader>gp",
+				":Neogit pull<CR>",
+				desc = "Neogit pull",
+			},
+			{
+				"<leader>gP",
+				":Neogit push<CR>",
+				desc = "Neogit push",
+			},
+			{
+				"<leader>gb",
+				":Telescope git_branches<CR>",
+				desc = "Git branches",
+			},
+			{
+				"<leader>gB",
+				":G blame<CR>",
+				desc = "Git blame",
+			},
+			{
+				"<leader>gr",
+				function()
+					local current_file = vim.fn.expand("%:p:h")
+					local git_root = vim.fn.systemlist("git -C " .. current_file .. " rev-parse --show-toplevel")[1]
+
+					if git_root and git_root ~= "" then
+						vim.cmd("cd " .. git_root)
+						vim.notify("Changed Neogit repo to: " .. git_root, vim.log.levels.INFO)
+					else
+						vim.notify("No Git repository found for the current file", vim.log.levels.ERROR)
+					end
+				end,
+				desc = "Set Neogit repo to parent Git repo",
+			},
+		},
+		config = function()
+			require("neogit").setup({
+				-- Your Neogit-specific configuration here
+			})
+		end,
+	},
+
+	{
+		"nvim-tree/nvim-tree.lua",
+		dependencies = { "nvim-tree/nvim-web-devicons" },
+		config = function()
+			require("nvim-tree").setup({
+				renderer = {
+					icons = {
+						glyphs = {
+							default = "",
+							symlink = "",
+							folder = {
+								arrow_closed = "",
+								arrow_open = "",
+								default = "",
+								open = "",
+								empty = "",
+								empty_open = "",
+								symlink = "",
+								symlink_open = "",
+							},
+						},
+					},
+				},
+			})
+		end,
+	},
+
+	{
+		"folke/noice.nvim",
+		event = "VeryLazy",
+		dependencies = {
+			"MunifTanjim/nui.nvim",
+			"rcarriga/nvim-notify",
+		},
+		opts = {
+			cmdline = {
+				enabled = true, -- Enables the cmdline popup
+				view = "cmdline", -- Style for the cmdline
+				format = {
+					cmdline = { icon = ">" },
+					search_down = { icon = "🔍⌄" },
+					search_up = { icon = "🔍⌃" },
+				},
+			},
+			messages = {
+				enabled = true, -- Enables message redirection to popups
+			},
+			popupmenu = {
+				enabled = true, -- Enables a custom popup menu UI
+			},
+			lsp = {
+				override = {
+					["vim.lsp.util.convert_input_to_markdown_lines"] = true,
+					["vim.lsp.util.stylize_markdown"] = true,
+					["cmp.entry.get_documentation"] = true,
+				},
+			},
+			presets = {
+				bottom_search = false, -- Use a classic bottom search bar instead of a popup
+				command_palette = true, -- Integrate with a command palette UI
+				long_message_to_split = true, -- Automatically split long messages
+			},
+		},
 	},
 
 	-- NOTE: Plugins can also be added by using a table,
@@ -530,10 +720,6 @@ require("lazy").setup({
 			-- vim.keymap.set("n", "<leader>sr", builtin.resume, { desc = "[S]earch [R]esume" })
 			vim.keymap.set("n", "<leader>s.", builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
 			vim.keymap.set("n", "<leader><leader>", builtin.buffers, { desc = "[ ] Find existing buffers" })
-			-- Keybindings for Distant.nvim
-			vim.keymap.set("n", "<leader>df", "<cmd>DistantOpen<CR>", { desc = "Open Remote File" })
-			vim.keymap.set("n", "<leader>dd", "<cmd>DistantOpenDir<CR>", { desc = "Open Remote Directory" })
-			vim.keymap.set("n", "<leader>dc", "<cmd>DistantCommand<CR>", { desc = "Run Remote Command" })
 
 			-- Slightly advanced example of overriding default behavior and theme
 			vim.keymap.set("n", "<leader>/", function()
@@ -1032,6 +1218,20 @@ require("lazy").setup({
 					{ name = "buffer" },
 				},
 			})
+			cmp.setup.cmdline(":", {
+				mapping = cmp.mapping.preset.cmdline(),
+				sources = cmp.config.sources({
+					{ name = "path" },
+				}, {
+					{ name = "cmdline" },
+				}),
+			})
+			cmp.setup.cmdline("/", {
+				mapping = cmp.mapping.preset.cmdline(),
+				sources = {
+					{ name = "buffer" },
+				},
+			})
 		end,
 	},
 
@@ -1079,43 +1279,45 @@ require("lazy").setup({
 		opts = { signs = false },
 	},
 
-	{ -- Collection of various small independent plugins/modules
-		"echasnovski/mini.nvim",
-		config = function()
-			-- Better Around/Inside textobjects
-			--
-			-- Examples:
-			--  - va)  - [V]isually select [A]round [)]paren
-			--  - yinq - [Y]ank [I]nside [N]ext [Q]uote
-			--  - ci'  - [C]hange [I]nside [']quote
-			require("mini.ai").setup({ n_lines = 500 })
+	--[[
+  { -- Collection of various small independent plugins/modules
+    "echasnovski/mini.nvim",
+    config = function()
+      -- Better Around/Inside textobjects
+      --
+      -- Examples:
+      --  - va)  - [V]isually select [A]round [)]paren
+      --  - yinq - [Y]ank [I]nside [N]ext [Q]uote
+      --  - ci'  - [C]hange [I]nside [']quote
+      require("mini.ai").setup({ n_lines = 500 })
 
-			-- Add/delete/replace surroundings (brackets, quotes, etc.)
-			--
-			-- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
-			-- - sd'   - [S]urround [D]elete [']quotes
-			-- - sr)'  - [S]urround [R]eplace [)] [']
-			require("mini.surround").setup()
+      -- Add/delete/replace surroundings (brackets, quotes, etc.)
+      --
+      -- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
+      -- - sd'   - [S]urround [D]elete [']quotes
+      -- - sr)'  - [S]urround [R]eplace [)] [']
+      require("mini.surround").setup()
 
-			-- Simple and easy statusline.
-			--  You could remove this setup call if you don't like it,
-			--  and try some other statusline plugin
-			local statusline = require("mini.statusline")
-			-- set use_icons to true if you have a Nerd Font
-			statusline.setup({ use_icons = vim.g.have_nerd_font })
+      -- Simple and easy statusline.
+      --  You could remove this setup call if you don't like it,
+      --  and try some other statusline plugin
+      local statusline = require("mini.statusline")
+      -- set use_icons to true if you have a Nerd Font
+      statusline.setup({ use_icons = vim.g.have_nerd_font })
 
-			-- You can configure sections in the statusline by overriding their
-			-- default behavior. For example, here we set the section for
-			-- cursor location to LINE:COLUMN
-			---@diagnostic disable-next-line: duplicate-set-field
-			statusline.section_location = function()
-				return "%2l:%-2v"
-			end
+      -- You can configure sections in the statusline by overriding their
+      -- default behavior. For example, here we set the section for
+      -- cursor location to LINE:COLUMN
+      ---@diagnostic disable-next-line: duplicate-set-field
+      statusline.section_location = function()
+        return "%2l:%-2v"
+      end
 
-			-- ... and there is more!
-			--  Check out: https://github.com/echasnovski/mini.nvim
-		end,
-	},
+      -- ... and there is more!
+      --  Check out: https://github.com/echasnovski/mini.nvim
+    end,
+  },
+  --]]
 	{
 		"nvim-treesitter/nvim-treesitter",
 		build = ":TSUpdate",
