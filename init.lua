@@ -187,6 +187,11 @@ vim.api.nvim_set_keymap(
 	{ noremap = true, silent = true }
 )
 
+-- gitsigns binds
+vim.api.nvim_set_keymap("n", "<leader>gdd", ":Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>gdn", ":Gitsigns next_hunk<CR>", { noremap = true, silent = true }) -- Go to the next hunk
+vim.api.nvim_set_keymap("n", "<leader>gdp", ":Gitsigns prev_hunk<CR>", { noremap = true, silent = true }) -- Go to the previous hunk
+
 -- Open a new floating terminal
 vim.api.nvim_set_keymap("n", "<leader>t", ":FloatermToggle<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_hl(0, "@variable", { italic = false })
@@ -317,20 +322,20 @@ require("lazy").setup({
 				end,
 				desc = "Set Neogit repo to parent Git repo",
 			},
-      {
-        "<leader>ga",
-        function()
-            local result = vim.fn.system("git add -A")
-            if vim.v.shell_error == 0 then
-                vim.notify("Staged all changes", vim.log.levels.INFO)
-            else
-                vim.notify("Failed to stage changes: " .. result, vim.log.levels.ERROR)
-            end
-        end,
-        desc = "Stage all changes",
-      },
-    },
-    config = function()
+			{
+				"<leader>ga",
+				function()
+					local result = vim.fn.system("git add -A")
+					if vim.v.shell_error == 0 then
+						vim.notify("Staged all changes", vim.log.levels.INFO)
+					else
+						vim.notify("Failed to stage changes: " .. result, vim.log.levels.ERROR)
+					end
+				end,
+				desc = "Stage all changes",
+			},
+		},
+		config = function()
 			require("neogit").setup({
 				-- Your Neogit-specific configuration here
 			})
@@ -372,9 +377,21 @@ require("lazy").setup({
 			"rcarriga/nvim-notify",
 		},
 		opts = {
+			views = {
+				cmdline_popup = {
+					position = {
+						row = "50%",
+						col = "50%",
+					},
+					size = {
+						width = 60,
+						height = "auto",
+					},
+				},
+			},
 			cmdline = {
 				enabled = true, -- Enables the cmdline popup
-				view = "cmdline", -- Style for the cmdline
+				view = "cmdline_popup", -- Set to 'cmdline_popup' to enable popup
 				format = {
 					cmdline = { icon = ">" },
 					search_down = { icon = "🔍⌄" },
