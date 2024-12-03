@@ -188,9 +188,24 @@ vim.api.nvim_set_keymap(
 )
 
 -- gitsigns binds
-vim.api.nvim_set_keymap("n", "<leader>gdd", ":Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "<leader>gdn", ":Gitsigns next_hunk<CR>", { noremap = true, silent = true }) -- Go to the next hunk
-vim.api.nvim_set_keymap("n", "<leader>gdp", ":Gitsigns prev_hunk<CR>", { noremap = true, silent = true }) -- Go to the previous hunk
+vim.api.nvim_set_keymap(
+	"n",
+	"<leader>gdd",
+	":Gitsigns preview_hunk<CR>",
+	{ noremap = true, silent = true, desc = "Git Diff Hunk" }
+)
+vim.api.nvim_set_keymap(
+	"n",
+	"<leader>gdn",
+	":Gitsigns next_hunk<CR>",
+	{ noremap = true, silent = true, desc = "Git Next Hunk" }
+) -- Go to the next hunk
+vim.api.nvim_set_keymap(
+	"n",
+	"<leader>gdp",
+	":Gitsigns prev_hunk<CR>",
+	{ noremap = true, silent = true, desc = "Git Previous Hunk" }
+) -- Go to the previous hunk
 
 -- Open a new floating terminal
 vim.api.nvim_set_keymap("n", "<leader>t", ":FloatermToggle<CR>", { noremap = true, silent = true })
