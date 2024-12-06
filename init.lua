@@ -146,6 +146,10 @@ vim.keymap.set("n", "<C-l>", "<C-w><C-l>", { desc = "Move focus to the right win
 vim.keymap.set("n", "<C-j>", "<C-w><C-j>", { desc = "Move focus to the lower window" })
 vim.keymap.set("n", "<C-k>", "<C-w><C-k>", { desc = "Move focus to the upper window" })
 
+-- Move selected lines with shift+j or shift+k
+vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
+vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
+
 -- ---- nvzone/menu keybinds ----
 -- Keyboard users
 vim.keymap.set("n", "<C-t>", function()
@@ -165,6 +169,9 @@ vim.keymap.set("n", "<leader>e", ":NvimTreeToggle<CR>", { noremap = true, silent
 vim.keymap.set("n", "<A-c>", ":ChatGPT<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("i", "<C-Enter>", "<Plug>(chatgpt-send)", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>sr", ":GrugFar<CR>", { noremap = true, silent = true })
+
+-- Note Taking Custom LUA Module
+vim.keymap.set("n", "<leader>jn", require("mynotes").create_note, { desc = "Create a new jot" })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -186,6 +193,9 @@ vim.api.nvim_set_keymap(
 	":lua require('chatgpt').edit_with_instructions()<CR>",
 	{ noremap = true, silent = true }
 )
+
+-- Bind <leader>c to change filetype to Cisco
+vim.api.nvim_set_keymap("n", "<leader>c", ":set filetype=cisco<CR>", { noremap = true, silent = true })
 
 -- gitsigns binds
 vim.api.nvim_set_keymap(
